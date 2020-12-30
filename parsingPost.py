@@ -4,11 +4,10 @@ import datetime
 import time
 from pyfcm import FCMNotification
 
-APIKEY = ""
-TOKEN = ""
-SITE_URL = ""
-DRIVE_LOCATION = ""
-XPATH = ''
+APIKEY = "Your API KEY"
+SITE_URL = "The site URL you want"
+DRIVE_LOCATION = "The location of the drive you downloaded"
+XPATH = 'The XPATH where the title of the post is located'
 
 # 파이어베이스 콘솔에서 얻어 온 API키를 넣어 줌
 push_service = FCMNotification(api_key=APIKEY)
@@ -27,15 +26,17 @@ driver.close()
 ##
 
 def sendMessage(title):
-    registration_id = TOKEN
-
+    
     data_message = {
-        "body": "테스트 알림입니다.",
+        "body": "공지 알림",
         "title": title
     }
 
-    # data payload만 보내야 안드로이드 앱에서 백그라운드/포그라운드 두가지 상황에서 onMessageReceived()가 실행됨
-    result = push_service.single_device_data_message(registration_id=registration_id, data_message=data_message)
+    # newPost 토픽을 구독한 사용자에게만 알림 전송
+    result = push_service.notify_topic_subscribers(topic_name="newPost", data_message=data_message)
+
+    # 토큰 값을 지정해서 한 기기에만 푸시알림을 보낼거면 이걸로
+    # result = push_service.single_device_data_message(registration_id=registration_id, data_message=data_message)
     print(result)
 
 def activateBot(lastPostNum) :
@@ -59,7 +60,7 @@ def activateBot(lastPostNum) :
         for i in range (newPost):
             print(post_list_now[i+1].text)
             sendMessage(post_list_now[i+1].text)
-            sleep(2)
+            sleep(1)
 
     print("--------------------------------------------")
     driver.close()
@@ -76,7 +77,4 @@ while(True):
 
     lastPostNum = activateBot(lastPostNum)
     # 1시간에 1번씩 검사
-    sleep(60 * 1)
-
-
-
+    sleep(60 * 60)
