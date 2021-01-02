@@ -3,11 +3,23 @@ from time import sleep
 import datetime
 import time
 from pyfcm import FCMNotification
+import firebase_admin
+from firebase_admin import credentials
+from firebase_admin import db
+import inko
+myInko = inko.Inko()
+
 
 APIKEY = "Your API KEY"
 SITE_URL = "The site URL you want"
 DRIVE_LOCATION = "The location of the drive you downloaded"
 XPATH = 'The XPATH where the title of the post is located'
+
+
+cred = credentials.Certificate('The location of json file')
+firebase_admin.initialize_app(cred,{
+    'databaseURL' : 'Your database URL'
+})
 
 # 파이어베이스 콘솔에서 얻어 온 API키를 넣어 줌
 push_service = FCMNotification(api_key=APIKEY)
@@ -16,7 +28,7 @@ push_service = FCMNotification(api_key=APIKEY)
 options = webdriver.ChromeOptions()
 options.add_argument('headless')
 chrome_options=options
-driver = webdriver.Chrome(DRIVE_LOCATION, chrome_options=options)
+driver = webdriver.Chrome(DRIVE_LOCATION, options=options)
 driver.get(SITE_URL)
 driver.implicitly_wait(time_to_wait=5)
 
@@ -25,22 +37,32 @@ lastPostNum = element.text # 가장 최근에 올라온 게시물의 번호
 driver.close()
 ##
 
-def sendMessage(title):
-    
+def importSubscribedKeyword():
+    keywords = []
+    dir = db.reference().child("keywords")
+    snapshot = dir.get()
+    for key, value in snapshot.items():
+        keywords.append(myInko.en2ko(value)) # 영한변환
+
+    return keywords
+
+def sendMessage(title, keyword):
     data_message = {
         "body": "공지 알림",
         "title": title
     }
 
-    # newPost 토픽을 구독한 사용자에게만 알림 전송
-    result = push_service.notify_topic_subscribers(topic_name="newPost", data_message=data_message)
+    # 한글은 키워드로 설정할 수 없다. 한영변환.
+    keyword = myInko.ko2en(keyword)
+    # 구독한 사용자에게만 알림 전송
+    result = push_service.notify_topic_subscribers(topic_name=keyword, data_message=data_message)
 
     # 토큰 값을 지정해서 한 기기에만 푸시알림을 보낼거면 이걸로
     # result = push_service.single_device_data_message(registration_id=registration_id, data_message=data_message)
     print(result)
 
 def activateBot(lastPostNum) :
-    driver = webdriver.Chrome(DRIVE_LOCATION, chrome_options=options)
+    driver = webdriver.Chrome(DRIVE_LOCATION, options=options)
     driver.get(SITE_URL)
     driver.implicitly_wait(time_to_wait=5)
 
@@ -53,14 +75,19 @@ def activateBot(lastPostNum) :
     newPost = int(nowPostNum) - int(lastPostNum)
     print("nowPostNum: ", nowPostNum, " lastPostNum: ", lastPostNum, " newPost: ", newPost)
 
+    keywords = importSubscribedKeyword()
+
     if(newPost > 0):
         element = driver.find_elements_by_class_name("list_title")
         post_list_now = element
 
         for i in range (newPost):
             print(post_list_now[i+1].text)
-            sendMessage(post_list_now[i+1].text)
-            sleep(1)
+            for keyword in keywords:
+                if keyword in post_list_now[i+1].text:
+                    print("키워드가 포함됨")
+                    sendMessage(post_list_now[i+1].text, keyword)
+                    sleep(1)
 
     print("--------------------------------------------")
     driver.close()
@@ -77,4 +104,4 @@ while(True):
 
     lastPostNum = activateBot(lastPostNum)
     # 1시간에 1번씩 검사
-    sleep(60 * 60)
+    sleep(60 * 1)
