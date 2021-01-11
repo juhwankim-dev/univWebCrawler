@@ -15,34 +15,45 @@ SITE_URL = "The site URL you want"
 DRIVE_LOCATION = "The location of the drive you downloaded"
 XPATH = 'The XPATH where the title of the post is located'
 
-
 cred = credentials.Certificate('The location of json file')
 firebase_admin.initialize_app(cred,{
     'databaseURL' : 'Your database URL'
 })
 
+
 # 파이어베이스 콘솔에서 얻어 온 API키를 넣어 줌
 push_service = FCMNotification(api_key=APIKEY)
 
-##
+numberFile = open('lastPostNum.txt', mode='wt', encoding='utf-8')
+Log = open('Log.txt', mode='at', encoding='utf-8')
+
+#초기 셋팅
 options = webdriver.ChromeOptions()
 options.add_argument('headless')
-chrome_options=options
+chrome_options = options
 driver = webdriver.Chrome(DRIVE_LOCATION, options=options)
-driver.get(SITE_URL)
-driver.implicitly_wait(time_to_wait=5)
+while(True):
+    try:
+        driver.get(SITE_URL)
+        driver.implicitly_wait(time_to_wait=5)
+        break;
+    except:
+        now = datetime.datetime.now()
+        Log.write("TIMED_OUT_ERROR(Occurrence Time): " + now.isoformat() + "\n")
 
 element = driver.find_element_by_xpath(XPATH)
-lastPostNum = element.text # 가장 최근에 올라온 게시물의 번호
+lastPostNum = element.text  # 가장 최근에 올라온 게시물의 번호
+
+numberFile.write(lastPostNum)
+numberFile.close()
 driver.close()
-##
 
 def importSubscribedKeyword():
     keywords = []
     dir = db.reference().child("keywords")
     snapshot = dir.get()
     for key, value in snapshot.items():
-        keywords.append(myInko.en2ko(value)) # 영한변환
+        keywords.append(myInko.en2ko(key)) # 영한변환
 
     return keywords
 
@@ -61,47 +72,60 @@ def sendMessage(title, keyword):
     # result = push_service.single_device_data_message(registration_id=registration_id, data_message=data_message)
     print(result)
 
-def activateBot(lastPostNum) :
+def activateBot() :
     driver = webdriver.Chrome(DRIVE_LOCATION, options=options)
-    driver.get(SITE_URL)
-    driver.implicitly_wait(time_to_wait=5)
+    while (True):
+        try:
+            driver.get(SITE_URL)
+            driver.implicitly_wait(time_to_wait=5)
+            break;
+        except:
+            now = datetime.datetime.now()
+            Log.write("TIMED_OUT_ERROR(Occurrence Time): " + now.isoformat() + "\n")
 
-    element = driver.find_element_by_xpath(XPATH)
-    nowPostNum = element.text
-
-    # 로그 남기기
-    nowTime = now.strftime("%H:%M:%S")
-    print("Log: ", nowTime, "에 크롤링을 실행하였습니다.")
-    newPost = int(nowPostNum) - int(lastPostNum)
-    print("nowPostNum: ", nowPostNum, " lastPostNum: ", lastPostNum, " newPost: ", newPost)
+    numberFile = open('lastPostNum.txt', mode='rt', encoding='utf-8')
+    lastPostNum = numberFile.read()
+    numberFile.close()
 
     keywords = importSubscribedKeyword()
 
+    element = driver.find_element_by_xpath(XPATH)
+    nowPostNum = element.text
+    newPost = int(nowPostNum) - int(lastPostNum)
+
+    # 로그 남기기
+    now = datetime.datetime.now()
+    Log.write("\nDate: " + now.isoformat() + "\n")
+    Log.write("nowPostNum: " + nowPostNum + "\n")
+    Log.write("lastPostNum: " + lastPostNum + "\n")
+    Log.write("newPost: " + str(newPost))
+
     if(newPost > 0):
-        element = driver.find_elements_by_class_name("list_title")
-        post_list_now = element
-
         for i in range (newPost):
-            print(post_list_now[i+1].text)
+            path1 = '//*[@id="boardList"]/tbody/tr['
+            path2 = ']/td[2]/a'
+            fullPath = path1 + str(i+5) + path2
+            post = driver.find_element_by_xpath(fullPath)
+            Log.write("\n" + post.text + "\n")
             for keyword in keywords:
-                if keyword in post_list_now[i+1].text:
-                    print("키워드가 포함됨")
-                    sendMessage(post_list_now[i+1].text, keyword)
-                    sleep(1)
+                if keyword in post.text:
+                    Log.write(keyword + ", ")
+                    sendMessage(post.text, keyword)
 
-    print("--------------------------------------------")
+    Log.write("\n--------------------------------------------")
     driver.close()
+    Log.close()
     return nowPostNum
 
-while(True):
-    print("크롤러가 웹 페이지를 감시중입니다.")
-    now = datetime.datetime.now()
-    print("현재 날짜: ", now.isoformat())
-    nowTime = now.strftime("%H:%M:%S")
-    print("현재 시각: ", nowTime)
-    nowHour = now.strftime("%H")
-    print("--------------------------------------------")
 
-    lastPostNum = activateBot(lastPostNum)
-    # 1시간에 1번씩 검사
-    sleep(60 * 1)
+    #nowTime = now.strftime("%H:%M:%S")
+    #Log.write(("현재 시각: ", nowTime))
+    #nowHour = now.strftime("%H")
+
+lastPostNum = activateBot()
+numberFile = open('lastPostNum.txt', mode='wt', encoding='utf-8')
+numberFile.write(lastPostNum)
+numberFile.close()
+# 1시간에 1번씩 검사
+# sleep(60 * 60)
+print("끝")
