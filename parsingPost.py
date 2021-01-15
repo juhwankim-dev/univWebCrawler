@@ -1,25 +1,26 @@
 from selenium import webdriver
 from time import sleep
 import datetime
-import time
 from pyfcm import FCMNotification
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import db
 import inko
 myInko = inko.Inko()
+import os
 
+# 링크, 키값 등
+APIKEY = os.environ["APIKEY"]
+JSON_LOCATION = os.environ["JSON_LOCATION"]
+SITE_URL = "http://www.anyang.ac.kr/bbs/board.do?menuId=23&bsIdx=61&bcIdx=20"
+DRIVE_LOCATION = "C:\chromedriver\chromedriver.exe"
+XPATH = '//*[@id="boardList"]/tbody/tr[6]/td[1]' # 가장 최근에 올라온 게시글의 번호
 
-APIKEY = "Your API KEY"
-SITE_URL = "The site URL you want"
-DRIVE_LOCATION = "The location of the drive you downloaded"
-XPATH = 'The XPATH where the title of the post is located'
-
-cred = credentials.Certificate('The location of json file')
+#
+cred = credentials.Certificate(JSON_LOCATION)
 firebase_admin.initialize_app(cred,{
-    'databaseURL' : 'Your database URL'
+    'databaseURL' : 'https://pushnotification-6e716-default-rtdb.firebaseio.com/'
 })
-
 
 # 파이어베이스 콘솔에서 얻어 온 API키를 넣어 줌
 push_service = FCMNotification(api_key=APIKEY)
@@ -46,6 +47,7 @@ lastPostNum = element.text  # 가장 최근에 올라온 게시물의 번호
 
 numberFile.write(lastPostNum)
 numberFile.close()
+Log.close()
 driver.close()
 
 def importSubscribedKeyword():
@@ -53,7 +55,7 @@ def importSubscribedKeyword():
     dir = db.reference().child("keywords")
     snapshot = dir.get()
     for key, value in snapshot.items():
-        keywords.append(myInko.en2ko(key)) # 영한변환
+        keywords.append(key)
 
     return keywords
 
@@ -68,11 +70,9 @@ def sendMessage(title, keyword):
     # 구독한 사용자에게만 알림 전송
     result = push_service.notify_topic_subscribers(topic_name=keyword, data_message=data_message)
 
-    # 토큰 값을 지정해서 한 기기에만 푸시알림을 보낼거면 이걸로
-    # result = push_service.single_device_data_message(registration_id=registration_id, data_message=data_message)
     print(result)
 
-def activateBot() :
+def activateBot(Log) :
     driver = webdriver.Chrome(DRIVE_LOCATION, options=options)
     while (True):
         try:
@@ -114,18 +114,18 @@ def activateBot() :
 
     Log.write("\n--------------------------------------------")
     driver.close()
-    Log.close()
     return nowPostNum
-
 
     #nowTime = now.strftime("%H:%M:%S")
     #Log.write(("현재 시각: ", nowTime))
     #nowHour = now.strftime("%H")
 
-lastPostNum = activateBot()
-numberFile = open('lastPostNum.txt', mode='wt', encoding='utf-8')
-numberFile.write(lastPostNum)
-numberFile.close()
-# 1시간에 1번씩 검사
-# sleep(60 * 60)
-print("끝")
+while(True):
+    Log = open('Log.txt', mode='at', encoding='utf-8')
+    lastPostNum = activateBot(Log)
+    numberFile = open('lastPostNum.txt', mode='wt', encoding='utf-8')
+    numberFile.write(lastPostNum)
+    numberFile.close()
+    Log.close()
+    # 1시간에 1번씩 검사
+    sleep(60 * 60)
