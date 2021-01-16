@@ -1,5 +1,4 @@
 from selenium import webdriver
-from time import sleep
 import datetime
 from pyfcm import FCMNotification
 import firebase_admin
@@ -120,12 +119,9 @@ def activateBot(Log) :
     #Log.write(("현재 시각: ", nowTime))
     #nowHour = now.strftime("%H")
 
-while(True):
-    Log = open('Log.txt', mode='at', encoding='utf-8')
-    lastPostNum = activateBot(Log)
-    numberFile = open('lastPostNum.txt', mode='wt', encoding='utf-8')
-    numberFile.write(lastPostNum)
-    numberFile.close()
-    Log.close()
-    # 1시간에 1번씩 검사
-    sleep(60 * 60)
+Log = open('Log.txt', mode='at', encoding='utf-8')
+lastPostNum = activateBot(Log)
+numberFile = open('lastPostNum.txt', mode='wt', encoding='utf-8')
+numberFile.write(lastPostNum)
+numberFile.close()
+Log.close()
