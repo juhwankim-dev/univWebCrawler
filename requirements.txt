@@ -2,3 +2,4 @@ selenium==3.141.0
 datetime
 pyfcm==1.5.1
 firebase_admin==4.5.0
+git+https://github.com/JackCme/inko.py.git
