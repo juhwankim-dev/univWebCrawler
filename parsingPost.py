@@ -15,7 +15,7 @@ import json
 cred_json = OrderedDict()
 cred_json["type"] = os.environ["type"]
 cred_json["project_id"] = os.environ["project_id"]
-cred_json["private_key_id"] = os.environ["private_key_id"]
+cred_json["private_key_id"] = os.environ["private_key_id"].replace('\\n', '\n')
 cred_json["private_key"] = os.environ["private_key"]
 cred_json["client_email"] = os.environ["client_email"]
 cred_json["client_id"] = os.environ["client_id"]
@@ -28,7 +28,8 @@ JSON = json.loads(JSON)
 
 # 링크, 키값 등
 APIKEY = os.environ["APIKEY"]
-DRIVE_LOCATION = '/app/.chromedriver/bin/chromedriver'
+DRIVE_LOCATION = '/app/.chromedriver/bin/chromedriver' # 크롬 드라이버 설치 위치
+CHROME_LOCATION = '/app/.apt/usr/bin/google-chrome' # 크롬 실행파일 설치 위치
 SITE_URL = "http://www.anyang.ac.kr/bbs/board.do?menuId=23&bsIdx=61&bcIdx=20"
 XPATH = '//*[@id="boardList"]/tbody/tr[6]/td[1]' # 가장 최근에 올라온 게시글의 번호
 
@@ -44,6 +45,7 @@ push_service = FCMNotification(api_key=APIKEY)
 #초기 셋팅
 options = webdriver.ChromeOptions()
 options.add_argument('headless')
+options.binary_location = CHROME_LOCATION
 chrome_options = options
 
 def importSubscribedKeyword():
