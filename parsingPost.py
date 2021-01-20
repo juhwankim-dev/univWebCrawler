@@ -102,5 +102,5 @@ dir = db.reference().child("lastPostNum")
 lastPostNum = dir.get() # 가장 최근에 올라온 게시물 번호
 
 # update lastPostNum
-nowPostNum = activateBot(lastPostNum)
+nowPostNum = activateBot(str(lastPostNum))
 dir.update({"lastPostNum": nowPostNum})
