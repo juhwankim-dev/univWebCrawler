@@ -15,8 +15,8 @@ import json
 cred_json = OrderedDict()
 cred_json["type"] = os.environ["type"]
 cred_json["project_id"] = os.environ["project_id"]
-cred_json["private_key_id"] = os.environ["private_key_id"].replace('\\n', '\n')
-cred_json["private_key"] = os.environ["private_key"]
+cred_json["private_key_id"] = os.environ["private_key_id"]
+cred_json["private_key"] = os.environ["private_key"].replace('\\n', '\n')
 cred_json["client_email"] = os.environ["client_email"]
 cred_json["client_id"] = os.environ["client_id"]
 cred_json["auth_uri"] = os.environ["auth_uri"]
