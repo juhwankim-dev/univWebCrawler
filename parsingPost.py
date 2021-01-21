@@ -53,7 +53,12 @@ def importSubscribedKeyword():
     dir = db.reference().child("keywords")
     snapshot = dir.get()
     for key, value in snapshot.items():
-        keywords.append(key)
+        # 키워드 조회하는 김에 구독자 수가 1이하 인거 삭제
+        if(int(value) < 1):
+            db.reference().child("keywords").child(key).delete()
+
+        else:
+            keywords.append(key)
 
     return keywords
 
@@ -86,11 +91,26 @@ def activateBot(lastPostNum) :
     nowPostNum = element.text
     newPost = int(nowPostNum) - int(lastPostNum)
 
-    if(newPost > 0):
-        for i in range (newPost):
+    index = 1
+    path1 = '//*[@id="boardList"]/tbody/tr['
+    path2 = ']/td[1]/span'
+
+    if (newPost > 0):
+        # 공지사항 게시물이 몇개인지 알아낸다 (건너 뛰기 위해서)
+        while (True):
+            fullPath = path1 + str(index) + path2
+            try:
+                postNumber = driver.find_element_by_xpath(fullPath).text
+                if (postNumber == '[공지]'):
+                    index = index + 1
+            except:
+                break
+
+        # 키워드를 포함하는 게시물이 있는지 검사한다.
+        for i in range(newPost):
             path1 = '//*[@id="boardList"]/tbody/tr['
             path2 = ']/td[2]/a'
-            fullPath = path1 + str(i+5) + path2
+            fullPath = path1 + str(index + i) + path2
             post = driver.find_element_by_xpath(fullPath)
             for keyword in keywords:
                 if keyword in post.text:
@@ -99,8 +119,10 @@ def activateBot(lastPostNum) :
     return nowPostNum
 
 dir = db.reference().child("lastPostNum")
-lastPostNum = dir.get() # 가장 최근에 올라온 게시물 번호
+snapshot = dir.get() # 가장 최근에 올라온 게시물 번호
+for key, value in snapshot.items():
+    lastPostNum = value
 
-# update lastPostNum
-nowPostNum = activateBot(str(lastPostNum))
-dir.update({"lastPostNum": nowPostNum})
+nowPostNum = activateBot(lastPostNum) # 크롤러 봇 실행
+if(nowPostNum != lastPostNum): # 새로 올라온 게시물이 있다면 업데이트
+    dir.update({"lastPostNum": nowPostNum})
