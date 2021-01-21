@@ -63,9 +63,9 @@ def importSubscribedKeyword():
 
     return keywords
 
-def sendMessage(title, keyword):
+def sendMessage(title, keyword, url):
     data_message = {
-        "body": "공지 알림",
+        "url": url,
         "title": title
     }
 
@@ -123,7 +123,7 @@ def activateBot(lastPostNum) :
             for keyword in keywords:
                 if keyword in post.text:
                     print(keyword, end=", ")
-                    sendMessage(post.text, keyword)
+                    sendMessage(post.text, keyword, post.get_attribute("href"))
     print("-----------------------------------------------")
 
     return nowPostNum
