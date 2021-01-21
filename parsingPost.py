@@ -56,6 +56,7 @@ def importSubscribedKeyword():
         # 키워드 조회하는 김에 구독자 수가 1이하 인거 삭제
         if(int(value) < 1):
             db.reference().child("keywords").child(key).delete()
+            print("[", key, "]", "가 삭제되었습니다: ", value)
 
         else:
             keywords.append(key)
@@ -72,9 +73,10 @@ def sendMessage(title, keyword):
     keyword = myInko.ko2en(keyword)
     # 구독한 사용자에게만 알림 전송
     result = push_service.notify_topic_subscribers(topic_name=keyword, data_message=data_message)
-    print(result)
+    print("\n", result)
 
 def activateBot(lastPostNum) :
+    print("-----------------------------------------------")
     driver = webdriver.Chrome(DRIVE_LOCATION, options=options)
     while (True):
         try:
@@ -83,13 +85,18 @@ def activateBot(lastPostNum) :
             break;
         except:
             now = datetime.datetime.now()
-            print(now.isoformat())
+            print("TIMED_OUT_ERROR(Occurrence Time): " + now.isoformat())
 
     keywords = importSubscribedKeyword()
 
     element = driver.find_element_by_xpath(XPATH)
     nowPostNum = element.text
     newPost = int(nowPostNum) - int(lastPostNum)
+    now = datetime.datetime.now()
+    print("Date: " + now.isoformat())
+    print("nowPostNum: " + nowPostNum)
+    print("lastPostNum: " + lastPostNum)
+    print("newPost: " + str(newPost))
 
     index = 1
     path1 = '//*[@id="boardList"]/tbody/tr['
@@ -112,9 +119,12 @@ def activateBot(lastPostNum) :
             path2 = ']/td[2]/a'
             fullPath = path1 + str(index + i) + path2
             post = driver.find_element_by_xpath(fullPath)
+            print("[" + post.text + "]")
             for keyword in keywords:
                 if keyword in post.text:
+                    print(keyword, end=", ")
                     sendMessage(post.text, keyword)
+    print("-----------------------------------------------")
 
     return nowPostNum
 
