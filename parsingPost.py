@@ -104,6 +104,9 @@ def activateBot(lastPostNum) :
         except:
             break
 
+    fullPath = path1 + str(index) + ']/td[1]'
+    postNumber = driver.find_element_by_xpath(fullPath).text # 가장 최신글 번호
+
     newPost = int(postNumber) - int(lastPostNum)
     now = datetime.datetime.now()
     print("Date: " + now.isoformat())
@@ -125,7 +128,7 @@ def activateBot(lastPostNum) :
                     sendMessage(post.text, keyword, post.get_attribute("href"))
     print("-----------------------------------------------")
 
-    return nowPostNum
+    return postNumber
 
 dir = db.reference().child("lastPostNum")
 snapshot = dir.get() # 가장 최근에 올라온 게시물 번호
