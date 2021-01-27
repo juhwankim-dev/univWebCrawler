@@ -89,30 +89,29 @@ def activateBot(lastPostNum) :
 
     keywords = importSubscribedKeyword()
 
-    element = driver.find_element_by_xpath(XPATH)
-    nowPostNum = element.text
-    newPost = int(nowPostNum) - int(lastPostNum)
-    now = datetime.datetime.now()
-    print("Date: " + now.isoformat())
-    print("nowPostNum: " + nowPostNum)
-    print("lastPostNum: " + lastPostNum)
-    print("newPost: " + str(newPost))
-
     index = 1
+
     path1 = '//*[@id="boardList"]/tbody/tr['
     path2 = ']/td[1]/span'
 
-    if (newPost > 0):
-        # 공지사항 게시물이 몇개인지 알아낸다 (건너 뛰기 위해서)
-        while (True):
-            fullPath = path1 + str(index) + path2
-            try:
-                postNumber = driver.find_element_by_xpath(fullPath).text
-                if (postNumber == '[공지]'):
-                    index = index + 1
-            except:
-                break
+    # 공지사항 게시물이 몇개인지 알아낸다 (건너 뛰기 위해서)
+    while (True):
+        fullPath = path1 + str(index) + path2
+        try:
+            postNumber = driver.find_element_by_xpath(fullPath).text
+            if (postNumber == '[공지]'):
+                index = index + 1
+        except:
+            break
 
+    newPost = int(postNumber) - int(lastPostNum)
+    now = datetime.datetime.now()
+    print("Date: " + now.isoformat())
+    print("nowPostNum: " + postNumber)
+    print("lastPostNum: " + lastPostNum)
+    print("newPost: " + str(newPost))
+
+    if (newPost > 0):
         # 키워드를 포함하는 게시물이 있는지 검사한다.
         for i in range(newPost):
             path1 = '//*[@id="boardList"]/tbody/tr['
