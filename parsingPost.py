@@ -78,14 +78,21 @@ def sendMessage(title, keyword, url):
 def activateBot(lastPostNum) :
     print("-----------------------------------------------")
     driver = webdriver.Chrome(DRIVE_LOCATION, options=options)
+
+    count = 0
     while (True):
         try:
             driver.get(SITE_URL)
             driver.implicitly_wait(time_to_wait=5)
             break;
         except:
+            count = count + 1
             now = datetime.datetime.now()
             print("TIMED_OUT_ERROR(Occurrence Time): " + now.isoformat())
+            if(count==5):
+                result = sendMessage("타임아웃에러 발생", "모니터링키워드", " ")
+                print("The error message sent to developer")
+                break;
 
     keywords = importSubscribedKeyword()
 
