@@ -30,7 +30,7 @@ JSON = json.loads(JSON)
 APIKEY = os.environ["APIKEY"]
 DRIVE_LOCATION = '/app/.chromedriver/bin/chromedriver' # 크롬 드라이버 설치 위치
 CHROME_LOCATION = '/app/.apt/usr/bin/google-chrome' # 크롬 실행파일 설치 위치
-SITE_URL = "http://www.anyang.ac.kr/bbs/board.do?menuId=23&bsIdx=61&bcIdx=20"
+SITE_URL = "http://www.anyang.ac.kr/bbs/board.do?menuId=23&bsIdx=61&bcIdx=0"
 XPATH = '//*[@id="boardList"]/tbody/tr[6]/td[1]' # 가장 최근에 올라온 게시글의 번호
 
 #
