@@ -33,7 +33,6 @@ APIKEY = os.environ["APIKEY"]
 DRIVE_LOCATION = '/app/.chromedriver/bin/chromedriver'  # 크롬 드라이버 설치 위치
 CHROME_LOCATION = '/app/.apt/usr/bin/google-chrome'  # 크롬 실행파일 설치 위치
 SITE_URL = "http://www.anyang.ac.kr/bbs/board.do?menuId=23&bsIdx=61&bcIdx=0"
-XPATH = '//*[@id="boardList"]/tbody/tr[6]/td[1]'  # 가장 최근에 올라온 게시글의 번호
 
 #
 cred = credentials.Certificate(JSON)
@@ -56,14 +55,13 @@ options.add_argument("lang=ko_KR")  # 한국어!
 options.binary_location = CHROME_LOCATION
 chrome_options = options
 
-
 def importSubscribedKeyword():
     keywords = []
     dir = db.reference().child("keywords")
     snapshot = dir.get()
     for key, value in snapshot.items():
         # 키워드 조회하는 김에 구독자 수가 1이하 인거 삭제
-        if (int(value) < 1):
+        if int(value) < 1:
             db.reference().child("keywords").child(key).delete()
             print("[", key, "]", "가 삭제되었습니다: ", value)
 
@@ -71,7 +69,6 @@ def importSubscribedKeyword():
             keywords.append(key)
 
     return keywords
-
 
 def sendMessage(title, keyword, url):
     data_message = {
@@ -94,68 +91,67 @@ def activateBot(lastPostNum):
     driver.execute_script("Object.defineProperty(navigator, 'languages', {get: function() {return ['ko-KR', 'ko']}})")
 
     count = 0
-    while True:
+    while (True):
         takeSomeRest()
         try:
             driver.get(SITE_URL)
             driver.implicitly_wait(time_to_wait=5)
+            takeSomeRest()
+            html = driver.find_element_by_xpath('//*[@id="boardList"]/tbody')
             break;
         except:
             count = count + 1
             now = datetime.datetime.now()
             print("TIMED_OUT_ERROR(Occurrence Time): " + now.isoformat())
             if count == 5:
-                sendMessage("타임아웃에러 발생", "모니터링키워드", " ")
+                sendMessage("Timeout error", "모니터링키워드", " ")
                 print("The error message sent to developer")
                 break;
 
-    keywords = importSubscribedKeyword()
-
-    index = 1
-
-    path1 = '//*[@id="boardList"]/tbody/tr['
-    path2 = ']/td[1]/span'
-
-    # 공지사항 게시물이 몇개인지 알아낸다 (건너 뛰기 위해서)
-    while True:
-        takeSomeRest()
-        fullPath = path1 + str(index) + path2
+    # 게시물 번호 가져오기
+    for index in range(1, 10):
         try:
-            postNumber = driver.find_element_by_xpath(fullPath).text
-            if postNumber == '[공지]':
-                index = index + 1
+            path = 'tr[' + str(index) + ']/td[1]/span'
+            html.find_element_by_xpath(path).text
         except:
+            path = 'tr[' + str(index) + ']/td[1]'
+            nowPostNum = html.find_element_by_xpath(path).text
             break
 
-    fullPath = path1 + str(index) + ']/td[1]'
-    postNumber = driver.find_element_by_xpath(fullPath).text  # 가장 최신글 번호
-
-    newPost = int(postNumber) - int(lastPostNum)
+    newPost = int(nowPostNum) - int(lastPostNum)
     now = datetime.datetime.now()
+    print("index: ", index)
     print("Date: " + now.isoformat())
-    print("nowPostNum: " + postNumber)
+    print("nowPostNum: " + nowPostNum)
     print("lastPostNum: " + lastPostNum)
     print("newPost: " + str(newPost))
 
-    if newPost > 10:
-        sendMessage("비정상적인 활동이 감지되었습니다", "모니터링키워드", " ")
-        return postNumber
+    if newPost > 10 or newPost < 0:
+        sendMessage("newPost error: " + str(newPost), "모니터링키워드", " ")
+        return nowPostNum
 
     if newPost > 0:
+        keywords = importSubscribedKeyword()
+
         # 키워드를 포함하는 게시물이 있는지 검사한다.
         for i in range(newPost):
-            path1 = '//*[@id="boardList"]/tbody/tr['
-            path2 = ']/td[2]/a'
-            fullPath = path1 + str(index + i) + path2
-            post = driver.find_element_by_xpath(fullPath)
-            print("[" + post.text + "]")
+            path = 'tr[' + str(index) + ']/td[2]/a'
+            index = index + 1
+            try:
+                post = html.find_element_by_xpath(path).text
+                href = html.find_element_by_xpath(path).get_attribute("href")
+            except:
+                sendMessage("path error", "모니터링키워드", " ")
+                break
+
+            print("[" + post + "]")
             for keyword in keywords:
-                if keyword in post.text:
+                if keyword in post:
                     print(keyword, end=", ")
-                    sendMessage(post.text, keyword, post.get_attribute("href"))
+                    sendMessage(post, keyword, href)
     print("-----------------------------------------------")
 
-    return postNumber
+    return nowPostNum
 
 def takeSomeRest():
     rand_value = random.randint(1, 10)
@@ -166,6 +162,8 @@ snapshot = dir.get()  # 가장 최근에 올라온 게시물 번호
 for key, value in snapshot.items():
     lastPostNum = value
 
-nowPostNum = activateBot(lastPostNum)  # 크롤러 봇 실행
-if nowPostNum != lastPostNum:  # 새로 올라온 게시물이 있다면 업데이트
-    dir.update({"lastPostNum": nowPostNum})
+updateNum = activateBot(lastPostNum) # 크롤러 봇 실행
+if abs(int(updateNum) - int(lastPostNum)) > 10: # 갑자기 너무 많은 공지가 올라온다면
+    sendMessage("postNum error", "모니터링키워드", " ")
+elif updateNum != lastPostNum: # 새로 올라온 게시물이 있다면 업데이트
+    dir.update({"lastPostNum": updateNum})
