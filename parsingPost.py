@@ -55,6 +55,11 @@ options.add_argument("lang=ko_KR")  # 한국어!
 options.binary_location = CHROME_LOCATION
 chrome_options = options
 
+driver = webdriver.Chrome(DRIVE_LOCATION, options=options)
+driver.get('about:blank')
+driver.execute_script("Object.defineProperty(navigator, 'plugins', {get: function() {return[1, 2, 3, 4, 5];},});")
+driver.execute_script("Object.defineProperty(navigator, 'languages', {get: function() {return ['ko-KR', 'ko']}})")
+
 def importSubscribedKeyword():
     keywords = []
     dir = db.reference().child("keywords")
@@ -85,28 +90,16 @@ def sendMessage(title, keyword, url):
 
 def activateBot(lastPostNum):
     print("-----------------------------------------------")
-    driver = webdriver.Chrome(DRIVE_LOCATION, options=options)
-    driver.get('about:blank')
-    driver.execute_script("Object.defineProperty(navigator, 'plugins', {get: function() {return[1, 2, 3, 4, 5];},});")
-    driver.execute_script("Object.defineProperty(navigator, 'languages', {get: function() {return ['ko-KR', 'ko']}})")
-
-    count = 0
-    while (True):
-        takeSomeRest()
-        try:
-            driver.get(SITE_URL)
-            driver.implicitly_wait(time_to_wait=5)
-            takeSomeRest()
-            html = driver.find_element_by_xpath('//*[@id="boardList"]/tbody')
-            break;
-        except:
-            count = count + 1
-            now = datetime.datetime.now()
-            print("TIMED_OUT_ERROR(Occurrence Time): " + now.isoformat())
-            if count == 5:
-                sendMessage("Timeout error", "모니터링키워드", " ")
-                print("The error message sent to developer")
-                break;
+    try:
+        driver.implicitly_wait(10)
+        driver.get(SITE_URL)
+        html = driver.find_element_by_xpath('//*[@id="boardList"]/tbody')
+    except:
+        now = datetime.datetime.now()
+        print("TIMED_OUT_ERROR(Occurrence Time): " + now.isoformat())
+        sendMessage("Timeout error", "모니터링키워드", " ")
+        print("The error message sent to developer")
+        return 0
 
     # 게시물 번호 가져오기
     for index in range(1, 10):
@@ -167,3 +160,5 @@ if abs(int(updateNum) - int(lastPostNum)) > 10: # 갑자기 너무 많은 공지
     sendMessage("postNum error", "모니터링키워드", " ")
 elif updateNum != lastPostNum: # 새로 올라온 게시물이 있다면 업데이트
     dir.update({"lastPostNum": updateNum})
+
+driver.quit()
