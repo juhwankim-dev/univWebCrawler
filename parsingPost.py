@@ -103,7 +103,7 @@ def activateBot() :
         print("TIMED_OUT_ERROR(Occurrence Time): " + now.isoformat())
         sendMessage("Timeout error", "모니터링키워드", " ")
         print("The error message sent to developer")
-        return 0
+        exit()
 
     # 공지사항이 총 몇개인지 알아보는 작업
     for index in range(1, 10):
@@ -128,12 +128,14 @@ def activateBot() :
         newPost = newPost + ", " + post
         if not post in previousPosts: # 최근 글이 이미 10분 전에 올라왔던 글이라면 새로운글없는거야. not을 붙였으니 새로운글이라면~ 이란 뜻
             href = html.find_element_by_xpath(path).get_attribute("href")
-            print("[" + post + "]")
+            print("title: [" + post + "]")
+            print("contain keyword:", end=" ")
 
             for keyword in keywords:
                 if keyword in post:
                     print(keyword, end=", ")
                     sendMessage(post, keyword, href)
+            print()
 
     return newPost
 
