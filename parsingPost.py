@@ -75,6 +75,12 @@ def importSubscribedKeyword():
 
     return keywords
 
+def importPreviousPost():
+    dir = db.reference().child("previousPosts")
+    snapshot = dir.get()
+    for key, value in snapshot.items():
+        return value
+
 def sendMessage(title, keyword, url):
     data_message = {
         "url": url,
@@ -84,11 +90,9 @@ def sendMessage(title, keyword, url):
     # 한글은 키워드로 설정할 수 없다. 한영변환.
     keyword = myInko.ko2en(keyword)
     # 구독한 사용자에게만 알림 전송
-    result = push_service.notify_topic_subscribers(topic_name=keyword, data_message=data_message)
-    print("\n", result)
+    push_service.notify_topic_subscribers(topic_name=keyword, data_message=data_message)
 
-
-def activateBot(lastPostNum):
+def activateBot() :
     print("-----------------------------------------------")
     try:
         driver.implicitly_wait(10)
@@ -101,64 +105,48 @@ def activateBot(lastPostNum):
         print("The error message sent to developer")
         return 0
 
-    # 게시물 번호 가져오기
+    # 공지사항이 총 몇개인지 알아보는 작업
     for index in range(1, 10):
         try:
             path = 'tr[' + str(index) + ']/td[1]/span'
             html.find_element_by_xpath(path).text
         except:
-            path = 'tr[' + str(index) + ']/td[1]'
-            nowPostNum = html.find_element_by_xpath(path).text
             break
 
-    newPost = int(nowPostNum) - int(lastPostNum)
     now = datetime.datetime.now()
-    print("index: ", index)
     print("Date: " + now.isoformat())
-    print("nowPostNum: " + nowPostNum)
-    print("lastPostNum: " + lastPostNum)
-    print("newPost: " + str(newPost))
 
-    if newPost > 10 or newPost < 0:
-        sendMessage("newPost error: " + str(newPost), "모니터링키워드", " ")
-        return nowPostNum
+    keywords = importSubscribedKeyword()
+    newPost = ""
 
-    if newPost > 0:
-        keywords = importSubscribedKeyword()
+    # 키워드를 포함하는 게시물이 있는지 검사한다.
+    for i in range(5):
+        path = 'tr[' + str(index) + ']/td[2]/a'
+        index = index + 1
 
-        # 키워드를 포함하는 게시물이 있는지 검사한다.
-        for i in range(newPost):
-            path = 'tr[' + str(index) + ']/td[2]/a'
-            index = index + 1
-            try:
-                post = html.find_element_by_xpath(path).text
-                href = html.find_element_by_xpath(path).get_attribute("href")
-            except:
-                sendMessage("path error", "모니터링키워드", " ")
-                break
-
+        post = html.find_element_by_xpath(path).text
+        newPost = newPost + ", " + post
+        if not post in previousPosts: # 최근 글이 이미 10분 전에 올라왔던 글이라면 새로운글없는거야. not을 붙였으니 새로운글이라면~ 이란 뜻
+            href = html.find_element_by_xpath(path).get_attribute("href")
             print("[" + post + "]")
+
             for keyword in keywords:
                 if keyword in post:
                     print(keyword, end=", ")
                     sendMessage(post, keyword, href)
-    print("-----------------------------------------------")
 
-    return nowPostNum
+    return newPost
 
 def takeSomeRest():
     rand_value = random.randint(1, 10)
     sleep(rand_value)
 
-dir = db.reference().child("lastPostNum")
-snapshot = dir.get()  # 가장 최근에 올라온 게시물 번호
-for key, value in snapshot.items():
-    lastPostNum = value
-
-updateNum = activateBot(lastPostNum) # 크롤러 봇 실행
-if abs(int(updateNum) - int(lastPostNum)) > 10: # 갑자기 너무 많은 공지가 올라온다면
-    sendMessage("postNum error", "모니터링키워드", " ")
-elif updateNum != lastPostNum: # 새로 올라온 게시물이 있다면 업데이트
-    dir.update({"lastPostNum": updateNum})
+previousPosts = importPreviousPost()
+newPost = activateBot()
+if previousPosts != newPost:
+    dir = db.reference().child("previousPosts")
+    dir.update({"previousPosts": newPost})
+    print("\n" + "newPost: " + newPost)
 
 driver.quit()
+print("-----------------------------------------------")
