@@ -120,11 +120,17 @@ def activateBot() :
     newPost = ""
 
     # 키워드를 포함하는 게시물이 있는지 검사한다.
-    for i in range(5):
+    for i in range(10):
         path = 'tr[' + str(index) + ']/td[2]/a'
         index = index + 1
 
-        post = html.find_element_by_xpath(path).text
+        try:
+            post = html.find_element_by_xpath(path).text
+        except:
+            print("NoSuchElement Error")
+            print("-----------------------------------------------")
+            exit()
+
         newPost = newPost + ", " + post
         if not post in previousPosts: # 최근 글이 이미 10분 전에 올라왔던 글이라면 새로운글없는거야. not을 붙였으니 새로운글이라면~ 이란 뜻
             href = html.find_element_by_xpath(path).get_attribute("href")
