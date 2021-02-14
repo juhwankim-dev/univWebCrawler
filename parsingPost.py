@@ -149,12 +149,15 @@ def takeSomeRest():
     rand_value = random.randint(1, 10)
     sleep(rand_value)
 
-previousPosts = importPreviousPost()
-newPost = activateBot()
-if previousPosts != newPost:
-    dir = db.reference().child("previousPosts")
-    dir.update({"previousPosts": newPost})
-    print("\n" + "newPost: " + newPost)
+now = datetime.datetime.today().weekday()
+time = datetime.datetime.now().strftime('%H')
+if 0 <= now <= 4 and 9 <= int(time) <= 6: # 월~금, 9시~6시 사이에만 작동
+    previousPosts = importPreviousPost()
+    newPost = activateBot()
+    if previousPosts != newPost:
+        dir = db.reference().child("previousPosts")
+        dir.update({"previousPosts": newPost})
+        print("\n" + "newPost: " + newPost)
 
-driver.quit()
-print("-----------------------------------------------")
+    driver.quit()
+    print("-----------------------------------------------")
