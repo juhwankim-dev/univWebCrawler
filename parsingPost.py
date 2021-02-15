@@ -151,7 +151,7 @@ def takeSomeRest():
 
 now = datetime.datetime.today().weekday()
 time = datetime.datetime.now().strftime('%H')
-if 0 <= now <= 4 and 9 <= int(time) <= 6: # 월~금, 9시~6시 사이에만 작동
+if 0 <= now <= 4 and 9 <= int(time) <= 18: # 월~금, 9시~6시 사이에만 작동
     previousPosts = importPreviousPost()
     newPost = activateBot()
     if previousPosts != newPost:
