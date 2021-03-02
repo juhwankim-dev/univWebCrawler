@@ -79,7 +79,15 @@ def activateBot() :
 
     now = datetime.datetime.now()
     print("Date: " + now.isoformat())
-    response = requests.post("http://www.anyang.ac.kr/bbs/ajax/boardList.do", data=datas)
+
+    try:
+        response = requests.post("http://www.anyang.ac.kr/bbs/ajax/boardList.do", data=datas)
+    except requests.exceptions.Timeout:
+        sendMessage("Timeout 발생", "모니터링 키워드", " ")
+        exit()
+    except requests.exceptions.TooManyRedirects:
+        sendMessage("TooManyRedirects 발생", "모니터링 키워드", " ")
+        exit()
 
     responseJson = response.json()
     resultList = responseJson["resultList"]
