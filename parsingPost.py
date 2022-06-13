@@ -1,5 +1,6 @@
 from collections import OrderedDict
 from time import sleep
+from bs4 import BeautifulSoup as bs
 
 import datetime
 from pyfcm import FCMNotification
@@ -30,7 +31,7 @@ JSON = json.loads(JSON)
 
 # 링크, 키값 등
 APIKEY = os.environ["APIKEY"]
-SITE_URL = "http://www.anyang.ac.kr/bbs/board.do?menuId=23&bsIdx=61&bcIdx=0"
+REQUEST_URL = "http://www.anyang.ac.kr/bbs/board.do?menuId=23&bsIdx=61&bcIdx=0"
 
 #
 cred = credentials.Certificate(JSON)
@@ -73,48 +74,70 @@ def sendMessage(title, keyword, url):
     # 구독한 사용자에게만 알림 전송
     push_service.notify_topic_subscribers(topic_name=keyword, data_message=data_message)
 
-def activateBot() :
-    baseUrl = "http://www.anyang.ac.kr/bbs/boardView.do?bsIdx=61&menuId=23&bcIdx=20&bIdx="
-    datas = {"menuId": "23", "bsIdx": "61", "bcIdx": "0", "page": "1"}
+def sendErrorMessage(message):
+    sendMessage(datetime.datetime.now().isoformat() + ", " + message, "모니터링키워드", " ")
+
+def activateBot():
+    baseUrl = "https://www.anyang.ac.kr/main/communication/notice.do"
 
     now = datetime.datetime.now()
     print("Date: " + now.isoformat())
 
     try:
-        response = requests.post("http://www.anyang.ac.kr/bbs/ajax/boardList.do", data=datas)
-    except requests.exceptions.Timeout:
-        sendMessage("Timeout 발생", "모니터링 키워드", " ")
-        exit()
-    except requests.exceptions.TooManyRedirects:
-        sendMessage("TooManyRedirects 발생", "모니터링 키워드", " ")
-        exit()
+        response = requests.get(REQUEST_URL)
+        soup = bs(response.text, "html.parser")
+    except Exception as e:
+        sendErrorMessage("HTTP 요청 실패")
+        return
 
-    responseJson = response.json()
-    resultList = responseJson["resultList"]
+    headerSize = 0
+    for i in range(30):
+        try:
+            soup.select(".b-notice>a[href]")[i]['href']
+            headerSize = headerSize + 1
+        except:
+            break
+
+    titles = []
+    noticeIndexes = []
+    webLink = []
+    for i in range(headerSize, 30):
+        try:
+            notice = soup.select("div.b-title-box>a[href]")
+            link = notice[i]['href']
+            title = notice[i].text.strip()
+
+            if(link.find("articleNo") == -1):
+                sendErrorMessage("공지 리스트 api 주소 확인 필요")
+                return
+
+            # articleNo의 'a'에 해당하는 인덱스에 "articleNo=" 문자열의 길이인 10을 더한다.
+            startIndex = link.find("articleNo") + 10
+            endIndex = link.find('&', startIndex)
+
+            titles.append(title)
+            noticeIndexes.append(link[startIndex:endIndex])
+            webLink.append(link)
+            print(link + " / " + title)
+        except:
+            break
 
     keywords = importSubscribedKeyword()
-    subject = []
-    bidx = []
-
-    # POST 요청 보내서 값 받아오기
-    for notice in resultList:
-        subject.append(notice["SUBJECT"])
-        bidx.append(notice["B_IDX"])
-
-    newPostNumber = ""
+    newNoticeIndexes = ""
+    lastestIndex = previousPostNumber[2:previousPostNumber.find(',', 2)]
     for i in range(10):
-        newPostNumber = newPostNumber + ", " + bidx[i]
-        if not bidx[i] in previousPostNumber:  # 최근 10개 게시물중 이 번호가 아닌게 있으면 = 새로운 게시물이면
-            print("title: [" + subject[i] + "]")
+        newNoticeIndexes = newNoticeIndexes + ", " + noticeIndexes[i]
+        if not noticeIndexes[i] in previousPostNumber and int(noticeIndexes[i]) > int(lastestIndex):  # 최근 10개 게시물중 이 번호가 아닌게 있으면 = 새로운 게시물이면
+            print("title: " + titles[i])
             print("contain keyword:", end=" ")
 
             for keyword in keywords:
-                if keyword in subject[i]:
+                if keyword in titles[i]:
                     print(keyword, end=", ")
-                    sendMessage(subject[i], keyword, baseUrl + bidx[i])
+                    sendMessage(titles[i], keyword, baseUrl + webLink[i])
             print()
 
-    return newPostNumber
+    return newNoticeIndexes
 
 def takeSomeRest():
     rand_value = random.randint(1, 10)
@@ -122,12 +145,12 @@ def takeSomeRest():
 
 now = datetime.datetime.today().weekday()
 time = datetime.datetime.now().strftime('%H')
-if 0 <= now <= 4 and 9 <= int(time) <= 18: # 월~금, 9시~6시 사이에만 작동
+if 0 <= now <= 4 and 9 <= int(time) <= 19: # 월~금, 9시~7시 사이에만 작동
     print("-----------------------------------------------")
     previousPostNumber = importPreviousPost()
-    newPostNumber = activateBot()
-    if previousPostNumber != newPostNumber:
+    newNoticeIndexes = activateBot()
+    if newNoticeIndexes is not None and newNoticeIndexes != "" and previousPostNumber != newNoticeIndexes:
         dir = db.reference().child("previousPosts")
-        dir.update({"previousPosts": newPostNumber})
-        print("\n" + "newPost: " + newPostNumber)
+        dir.update({"previousPosts": newNoticeIndexes})
+        print("\n" + "newPost: " + newNoticeIndexes)
     print("-----------------------------------------------")
