@@ -141,7 +141,7 @@ def activateBot():
                 for keyword in keywords:
                     if keyword in titles[i]:
                         print(keyword, end=", ")
-                        sendMessage(titles[i], keyword, baseUrl + webLink[i])
+                        sendMessage(titles[i], "모니터링키워드", baseUrl + webLink[i])
                 print()
         except:
             sendErrorMessage("noticeIndexes 에러")
