@@ -125,17 +125,25 @@ def activateBot():
     keywords = importSubscribedKeyword()
     newNoticeIndexes = ""
     lastestIndex = previousPostNumber[2:previousPostNumber.find(',', 2)]
-    for i in range(10):
-        newNoticeIndexes = newNoticeIndexes + ", " + noticeIndexes[i]
-        if not noticeIndexes[i] in previousPostNumber and int(noticeIndexes[i]) > int(lastestIndex):  # 최근 10개 게시물중 이 번호가 아닌게 있으면 = 새로운 게시물이면
-            print("title: " + titles[i])
-            print("contain keyword:", end=" ")
 
-            for keyword in keywords:
-                if keyword in titles[i]:
-                    print(keyword, end=", ")
-                    sendMessage(titles[i], keyword, baseUrl + webLink[i])
-            print()
+    for i in range(len(noticeIndexes)):
+        try:
+            newNoticeIndexes = newNoticeIndexes + ", " + noticeIndexes[i]
+            if not noticeIndexes[i] in previousPostNumber and int(noticeIndexes[i]) > int(
+                    lastestIndex):  # 최근 10개 게시물중 이 번호가 아닌게 있으면 = 새로운 게시물이면
+                print("title: " + titles[i])
+                print("contain keyword:", end=" ")
+
+                for keyword in keywords:
+                    if keyword in titles[i]:
+                        print(keyword, end=", ")
+                        sendMessage(titles[i], keyword, baseUrl + webLink[i])
+                print()
+        except:
+            print("noticeIndexes:")
+            print(noticeIndexes)
+            sendErrorMessage("noticeIndexes 에러")
+            return previousPostNumber
 
     return newNoticeIndexes
 
