@@ -31,7 +31,7 @@ JSON = json.loads(JSON)
 
 # 링크, 키값 등
 APIKEY = os.environ["APIKEY"]
-REQUEST_URL = "http://www.anyang.ac.kr/bbs/board.do?menuId=23&bsIdx=61&bcIdx=0"
+REQUEST_URL = "https://www.anyang.ac.kr/main/communication/notice.do?mode=list"
 
 #
 cred = credentials.Certificate(JSON)
