@@ -96,13 +96,11 @@ def activateBot():
             soup.select(".b-notice>a[href]")[i]['href']
             headerSize = headerSize + 1
         except:
-            print(str(i) + "번째에서 header for문 종료")
             break
 
     titles = []
     noticeIndexes = []
     webLink = []
-    print("header size: str(headerSize)")
     for i in range(headerSize, 30):
         try:
             notice = soup.select("div.b-title-box>a[href]")
@@ -122,14 +120,11 @@ def activateBot():
             webLink.append(link)
             print(link + " / " + title)
         except:
-            print(str(i) + "번째에서 공지사항 for문 종료")
             break
 
     keywords = importSubscribedKeyword()
     newNoticeIndexes = ""
     lastestIndex = previousPostNumber[2:previousPostNumber.find(',', 2)]
-    print("noticeIndexes:")
-    print(noticeIndexes)
     for i in range(len(noticeIndexes)):
         try:
             newNoticeIndexes = newNoticeIndexes + ", " + noticeIndexes[i]
@@ -141,7 +136,7 @@ def activateBot():
                 for keyword in keywords:
                     if keyword in titles[i]:
                         print(keyword, end=", ")
-                        sendMessage(titles[i], "모니터링키워드", baseUrl + webLink[i])
+                        sendMessage(titles[i], keyword, baseUrl + webLink[i])
                 print()
         except:
             sendErrorMessage("noticeIndexes 에러")
