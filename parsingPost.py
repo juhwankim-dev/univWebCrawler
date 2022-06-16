@@ -31,7 +31,7 @@ JSON = json.loads(JSON)
 
 # 링크, 키값 등
 APIKEY = os.environ["APIKEY"]
-REQUEST_URL = "http://www.anyang.ac.kr/bbs/board.do?menuId=23&bsIdx=61&bcIdx=0"
+REQUEST_URL = "https://www.anyang.ac.kr/main/communication/notice.do?mode=list"
 
 #
 cred = credentials.Certificate(JSON)
@@ -125,7 +125,6 @@ def activateBot():
     keywords = importSubscribedKeyword()
     newNoticeIndexes = ""
     lastestIndex = previousPostNumber[2:previousPostNumber.find(',', 2)]
-
     for i in range(len(noticeIndexes)):
         try:
             newNoticeIndexes = newNoticeIndexes + ", " + noticeIndexes[i]
@@ -140,8 +139,6 @@ def activateBot():
                         sendMessage(titles[i], keyword, baseUrl + webLink[i])
                 print()
         except:
-            print("noticeIndexes:")
-            print(noticeIndexes)
             sendErrorMessage("noticeIndexes 에러")
             return previousPostNumber
 
